@@ -10,7 +10,7 @@ toolkit for Elixir.
 ## Compatibility
 
 ### EDTF / ISO 8601-2
-EDTF.js fully implements [EDTF](http://www.loc.gov/standards/datetime)
+EDTF fully implements [EDTF](http://www.loc.gov/standards/datetime)
 levels 0, 1, and 2 as specified by ISO 8601-2
 
 ## Installation

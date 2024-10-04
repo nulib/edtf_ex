@@ -78,7 +78,7 @@ defmodule EDTF.Humanize.Aggregate do
   end
 
   defp make_list(items, trailing_join) do
-    [Enum.slice(items, 0..-2) |> Enum.join(", "), List.last(items)]
+    [Enum.slice(items, 0..-2//1) |> Enum.join(", "), List.last(items)]
     |> Enum.join(", #{trailing_join} ")
   end
 end
