@@ -5,5 +5,5 @@ defmodule EDTF.Infinity do
   def match?(".."), do: true
   def match?(_), do: false
   def parse(".."), do: {:ok, %__MODULE__{}}
-  def parse(edtf), do: EDTF.invalid(edtf)
+  def parse(_), do: EDTF.invalid()
 end

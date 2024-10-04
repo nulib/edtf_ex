@@ -3,12 +3,12 @@ defmodule EDTF do
 
   def parse(edtf, include \\ [Interval, List, Range, Set, Date]) do
     case Enum.find(include, & &1.match?(edtf)) do
-      nil -> invalid(edtf)
+      nil -> invalid()
       mod -> mod.parse(edtf)
     end
   end
 
-  def invalid(edtf), do: {:error, "Invalid EDTF input: " <> edtf}
+  def invalid, do: {:error, :invalid_format}
 
   #  defp is(edtf, matcher), do: Regex.match?(@matchers[matcher], edtf)
 end

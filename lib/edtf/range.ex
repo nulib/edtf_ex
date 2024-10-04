@@ -12,11 +12,11 @@ defmodule EDTF.Range do
             {:ok, [start_date, stop_date]}
 
           _ ->
-            EDTF.invalid(edtf)
+            EDTF.invalid()
         end
 
       _ ->
-        EDTF.invalid(edtf)
+        EDTF.invalid()
     end
   end
 end

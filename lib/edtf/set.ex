@@ -24,12 +24,12 @@ defmodule EDTF.Set do
           end
         end)
         |> case do
-          :error -> EDTF.invalid(edtf)
+          :error -> EDTF.invalid()
           values -> %__MODULE__{values: Enum.reverse(values), level: 2}
         end
 
       _ ->
-        EDTF.invalid(edtf)
+        EDTF.invalid()
     end
   end
 end

@@ -29,12 +29,12 @@ defmodule EDTF.Interval do
             end
         end)
         |> case do
-          :error -> EDTF.invalid(edtf)
+          :error -> EDTF.invalid()
           values -> Enum.reverse(values) |> module()
         end
 
       _ ->
-        EDTF.invalid(edtf)
+        EDTF.invalid()
     end
   end
 
