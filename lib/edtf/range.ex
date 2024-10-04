@@ -1,4 +1,8 @@
 defmodule EDTF.Range do
+  @moduledoc """
+  Parser for EDTF Ranges
+  """
+
   @matcher ~r"^([^/]+)\.\.([^/]+)$"
   @valid [EDTF.Date]
 
@@ -12,11 +16,11 @@ defmodule EDTF.Range do
             {:ok, [start_date, stop_date]}
 
           _ ->
-            EDTF.invalid()
+            EDTF.error()
         end
 
       _ ->
-        EDTF.invalid()
+        EDTF.error()
     end
   end
 end

@@ -1,4 +1,8 @@
 defmodule EDTF.Interval do
+  @moduledoc """
+  Parser for EDTF Intervals
+  """
+
   @matcher ~r"^([^/]+)?/([^/]+)?$"
   @valid [EDTF.Date, EDTF.Infinity]
 
@@ -18,23 +22,23 @@ defmodule EDTF.Interval do
     case Regex.run(@matcher, edtf) do
       [_ | values] ->
         values
-        |> Enum.reduce_while([], fn
-          "", acc ->
-            {:cont, [nil | acc]}
-
-          date, acc ->
-            case EDTF.parse(date, @valid) do
-              {:ok, parsed} -> {:cont, [parsed | acc]}
-              {:error, _error} -> {:halt, :error}
-            end
-        end)
+        |> Enum.reduce_while([], &reducer/2)
         |> case do
-          :error -> EDTF.invalid()
-          values -> Enum.reverse(values) |> module()
+          :error -> EDTF.error()
+          values -> {:ok, Enum.reverse(values) |> module()}
         end
 
       _ ->
-        EDTF.invalid()
+        EDTF.error()
+    end
+  end
+
+  defp reducer("", acc), do: {:cont, [nil | acc]}
+
+  defp reducer(date, acc) do
+    case EDTF.parse(date, @valid) do
+      {:ok, parsed} -> {:cont, [parsed | acc]}
+      {:error, _error} -> {:halt, :error}
     end
   end
 

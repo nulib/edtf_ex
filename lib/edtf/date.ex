@@ -1,7 +1,11 @@
 defmodule EDTF.Date do
+  @moduledoc """
+  Parser for basic EDTF dates, including year, and decade
+  """
+
   alias EDTF.{Season, Year}
 
-  @matcher ~r/^Y?-?[\dX]+(?:E\d+)?(?:-[\dX]{2})?(?:-[\dX]{2})?$/
+  @matcher ~r/^Y?-?[\dX]+(?:E\d+)?(?:-[\dX]{2})?(?:-[\dX]{2})?[~%?]?$/
   @subtypes [Year, Season]
 
   defstruct type: :date,
@@ -9,7 +13,7 @@ defmodule EDTF.Date do
             level: 0,
             attributes: []
 
-  @type edtf_type :: :date | :year | :decade | :season
+  @type edtf_type :: :date | :century | :decade | :year
   @type edtf_attribute ::
           {:unspecified, integer()}
           | {:uncertain, boolean()}
@@ -55,11 +59,17 @@ defmodule EDTF.Date do
     |> finalize(edtf)
   end
 
-  defp finalize(:error, _), do: EDTF.invalid()
+  defp finalize(:error, _), do: EDTF.error()
   defp finalize({:ok, result}, edtf), do: {:ok, %__MODULE__{result | level: level(edtf)}}
+
+  defp parse_iso8601(<<"-", year::binary-size(4)>>, attributes),
+    do: parse_iso8601("-" <> year <> "-01-01", attributes, :year)
 
   defp parse_iso8601(<<year::binary-size(4)>>, attributes),
     do: parse_iso8601(year <> "-01-01", attributes, :year)
+
+  defp parse_iso8601(<<"-", year::binary-size(4), "-", month::binary-size(2)>>, attributes),
+    do: parse_iso8601("-" <> year <> "-" <> month <> "-01", attributes, :month)
 
   defp parse_iso8601(<<year::binary-size(4), "-", month::binary-size(2)>>, attributes),
     do: parse_iso8601(year <> "-" <> month <> "-01", attributes, :month)
@@ -91,6 +101,11 @@ defmodule EDTF.Date do
        values: values,
        attributes: attributes
      }}
+  end
+
+  defp unspecified(<<"-", edtf::binary>>) do
+    {edtf, mask} = unspecified(edtf)
+    {"-#{edtf}", mask}
   end
 
   defp unspecified(edtf) do
