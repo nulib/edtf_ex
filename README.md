@@ -1,5 +1,9 @@
 # EDTF
 
+[![Build](https://github.com/nulib/edtf_ex/actions/workflows/build.yml/badge.svg)](https://github.com/nulib/edtf_ex/actions/workflows/build.yml)
+[![Coverage](https://coveralls.io/repos/github/nulib/edtf_ex/badge.svg?branch=main)](https://coveralls.io/github/nulib/edtf_ex?branch=main)
+[![Hex.pm](https://img.shields.io/hexpm/v/edtf_ex.svg)](https://hex.pm/packages/authoritex)
+
 An Extended Date Time Format (EDTF) / ISO 8601-2 parser and English language rendering
 toolkit for Elixir.
 
@@ -11,18 +15,16 @@ levels 0, 1, and 2 as specified by ISO 8601-2
 
 ## Installation
 
-If [available in Hex](https://hex.pm/docs/publish), the package can be installed
-by adding `edtf_ex` to your list of dependencies in `mix.exs`:
+Add `edtf` to your list of dependencies in `mix.exs`:
 
 ```elixir
 def deps do
   [
-    {:edtf_ex, "~> 0.1.0"}
+    {:edtf, "~> 1.0.0"}
   ]
 end
 ```
 
-Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
-and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
-be found at <https://hexdocs.pm/edtf_ex>.
+## Usage
 
+See `EDTF.parse/1`, `EDTF.validate/1`, and `EDTF.humanize/1`.

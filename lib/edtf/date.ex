@@ -146,11 +146,6 @@ defmodule EDTF.Date do
   defp reassemble(<<year::binary-size(4), month::binary-size(2), day::binary-size(2)>>),
     do: [year, month, day] |> Enum.join("-")
 
-  defp reassemble(<<year::binary-size(4), month::binary-size(2)>>),
-    do: [year, month] |> Enum.join("-")
-
-  defp reassemble(<<year::binary-size(4)>>), do: year
-
   defp nonzero_month_and_day(str), do: String.replace(str, "-00", "-01")
 
   defp get_attributes(edtf) do

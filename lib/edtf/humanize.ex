@@ -28,7 +28,4 @@ defmodule EDTF.Humanize do
   def humanize(%EDTF.Aggregate{} = input), do: Humanize.Aggregate.humanize(input)
   def humanize(%EDTF.Continuation{} = input), do: Humanize.Aggregate.humanize(input)
   def humanize(%EDTF.Date{} = input), do: Humanize.Date.humanize(input)
-
-  def humanize(input) when is_map(input) and not is_map_key(input, :type),
-    do: input |> Map.put(:type, :date) |> humanize()
 end

@@ -38,6 +38,7 @@ defmodule EDTF.HumanizeTest do
       assert EDTF.humanize("192X") == "1920s"
       assert EDTF.humanize("19XX") == "1900s"
       assert EDTF.humanize("1XXX") == "1000s"
+      assert EDTF.humanize("XXXX") == "Unknown"
 
       assert EDTF.humanize("-192X") == "1920s BCE"
       assert EDTF.humanize("-19XX") == "1900s BCE"
