@@ -1,0 +1,11 @@
+version: 2
+updates:
+  - package-ecosystem: mix
+    directory: "/"
+    schedule:
+      interval: daily
+      time: "11:00"
+    labels:
+      - "dependencies"
+    open-pull-requests-limit: 10
+    target-branch: main
