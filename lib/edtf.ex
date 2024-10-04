@@ -3,7 +3,7 @@ defmodule EDTF do
   Parse, validate, and humanize EDTF date strings
   """
 
-  alias EDTF.{Date, Interval, List, Set}
+  alias EDTF.{Date, Interval, Aggregate}
 
   @doc """
   Parse an EDTF date string
@@ -17,7 +17,7 @@ defmodule EDTF do
     {:error, :invalid_format}
     ```
   """
-  def parse(edtf, include \\ [Interval, List, Set, Date]) do
+  def parse(edtf, include \\ [Interval, Aggregate, Date]) do
     case Enum.find(include, & &1.match?(edtf)) do
       nil -> error()
       mod -> mod.parse(edtf)

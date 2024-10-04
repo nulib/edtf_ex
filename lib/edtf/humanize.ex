@@ -25,9 +25,8 @@ defmodule EDTF.Humanize do
   def humanize(%EDTF.Date{type: :year} = input), do: Humanize.Date.humanize(input)
   def humanize(%EDTF.Date{type: :decade} = input), do: Humanize.Date.humanize(input)
   def humanize(%EDTF.Date{type: :century} = input), do: Humanize.Date.humanize(input)
-  def humanize(%EDTF.List{} = input), do: Humanize.List.humanize(input)
-  def humanize(%EDTF.Set{} = input), do: Humanize.List.humanize(input)
-  def humanize(%EDTF.Continuation{} = input), do: Humanize.List.humanize(input)
+  def humanize(%EDTF.Aggregate{} = input), do: Humanize.Aggregate.humanize(input)
+  def humanize(%EDTF.Continuation{} = input), do: Humanize.Aggregate.humanize(input)
   def humanize(%EDTF.Date{} = input), do: Humanize.Date.humanize(input)
 
   def humanize(input) when is_map(input) and not is_map_key(input, :type),
