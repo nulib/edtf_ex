@@ -3,7 +3,7 @@ defmodule EDTF do
   Parse, validate, and humanize EDTF date strings
   """
 
-  alias EDTF.{Date, Interval, Aggregate}
+  alias EDTF.{Aggregate, Date, Interval}
 
   @doc """
   Parse an EDTF date string

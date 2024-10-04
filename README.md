@@ -2,7 +2,7 @@
 
 [![Build](https://github.com/nulib/edtf_ex/actions/workflows/build.yml/badge.svg)](https://github.com/nulib/edtf_ex/actions/workflows/build.yml)
 [![Coverage](https://coveralls.io/repos/github/nulib/edtf_ex/badge.svg?branch=main)](https://coveralls.io/github/nulib/edtf_ex?branch=main)
-[![Hex.pm](https://img.shields.io/hexpm/v/edtf_ex.svg)](https://hex.pm/packages/authoritex)
+[![Hex.pm](https://img.shields.io/hexpm/v/edtf.svg)](https://hex.pm/packages/edtf)
 
 An Extended Date Time Format (EDTF) / ISO 8601-2 parser and English language rendering
 toolkit for Elixir.

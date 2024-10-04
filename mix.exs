@@ -11,6 +11,8 @@ defmodule EDTF.MixProject do
       elixir: "~> 1.15",
       deps: deps(),
       name: "EDTF",
+      description:
+        "Extended Date Time Format (EDTF) / ISO 8601-2 parsing and English language rendering",
       package: package(),
       source_url: @url,
       homepage: @url,
@@ -46,8 +48,8 @@ defmodule EDTF.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:credo, "~> 1.7", only: [:dev, :text], runtime: false},
-      {:ex_doc, "~> 0.34", only: :dev, runtime: false},
+      {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
+      {:ex_doc, "~> 0.34", only: [:dev, :test, :docs], runtime: false},
       {:excoveralls, "~> 0.18", only: [:dev, :test], runtime: false},
       {:inflex, "~> 2.1"}
     ]
