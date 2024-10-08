@@ -3,7 +3,7 @@ defmodule EDTF do
   Parse, validate, and humanize EDTF date strings
   """
 
-  alias EDTF.{Aggregate, Date, Interval}
+  alias EDTF.{Aggregate, Date, Interval, Level}
 
   @doc """
   Parse an EDTF date string
@@ -22,6 +22,7 @@ defmodule EDTF do
       nil -> error()
       mod -> mod.parse(edtf)
     end
+    |> Level.add_level()
   end
 
   @doc """

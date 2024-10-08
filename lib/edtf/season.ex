@@ -22,8 +22,7 @@ defmodule EDTF.Season do
         {:ok,
          %EDTF.Date{
            type: :season,
-           values: [String.to_integer(year), String.to_integer(season)],
-           level: 2
+           values: [String.to_integer(year), String.to_integer(season)]
          }}
     end
   end

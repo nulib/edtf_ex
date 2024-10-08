@@ -8,7 +8,7 @@ defmodule EDTF.Interval do
 
   defstruct start: nil,
             end: nil,
-            level: 1
+            level: 2
 
   @type t :: %__MODULE__{
           start: EDTF.Date.t() | nil,
@@ -42,6 +42,6 @@ defmodule EDTF.Interval do
     end
   end
 
-  defp module([start | [stop]]), do: %__MODULE__{start: start, end: stop, level: 1}
+  defp module([start | [stop]]), do: %__MODULE__{start: start, end: stop, level: 2}
   defp module([v]), do: module([v, nil])
 end

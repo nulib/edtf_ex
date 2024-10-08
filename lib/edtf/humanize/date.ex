@@ -49,7 +49,7 @@ defmodule EDTF.Humanize.Date do
 
   defp humanize(:date, _, %{unspecified: _}), do: :original
 
-  defp humanize(:date, values, %{uncertain: true} = attributes),
+  defp humanize(:date, values, %{uncertain: _v} = attributes),
     do: humanize(:date, values, Map.delete(attributes, :uncertain)) <> "?"
 
   defp humanize(:date, values, _) do

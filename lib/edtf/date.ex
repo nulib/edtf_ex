@@ -5,7 +5,7 @@ defmodule EDTF.Date do
 
   alias EDTF.{Season, Year}
 
-  @matcher ~r/^Y?-?[\dX]+(?:E\d+)?(?:-[\dX]{2})?(?:-[\dX]{2})?[~%?]?$/
+  @matcher ~r/^Y?[~%?]?-?[\dX]+(?:E\d+)?(?:S\d+)?(?:-[~%?]?[\dX]{2})?(?:-[~%?]?[\dX]{2})?[~%?]?$/
   @subtypes [Year, Season]
 
   defstruct type: :date,
@@ -16,8 +16,9 @@ defmodule EDTF.Date do
   @type edtf_type :: :date | :century | :decade | :year
   @type edtf_attribute ::
           {:unspecified, integer()}
-          | {:uncertain, boolean()}
-          | {:approximate, boolean()}
+          | {:uncertain, integer() | boolean()}
+          | {:approximate, integer() | boolean()}
+          | {:significant, integer()}
           | {:earlier, boolean()}
           | {:later, boolean()}
 
@@ -42,51 +43,54 @@ defmodule EDTF.Date do
   defp parse_date(edtf) do
     {edtf, attributes} = get_attributes(edtf)
 
-    case edtf do
-      <<"-", val::binary-size(2)>> -> {:century, [0 - String.to_integer(val)], 0}
-      <<val::binary-size(2)>> -> {:century, [String.to_integer(val)], 0}
-      <<"-", val::binary-size(3)>> -> {:decade, [0 - String.to_integer(val)], 2}
-      <<val::binary-size(3)>> -> {:decade, [String.to_integer(val)], 2}
-      other -> other
-    end
+    parse_date(edtf, attributes)
     |> case do
-      {type, values, level} ->
-        {:ok, %__MODULE__{type: type, values: values, level: level, attributes: attributes}}
-
-      other ->
-        parse_iso8601(other, attributes)
+      :error -> EDTF.error()
+      result -> result
     end
-    |> finalize(edtf)
   end
 
-  defp finalize(:error, _), do: EDTF.error()
-  defp finalize({:ok, result}, edtf), do: {:ok, %__MODULE__{result | level: level(edtf)}}
+  defp parse_date(<<"-", val::binary-size(2)>>, attributes) do
+    {:ok,
+     %__MODULE__{type: :century, values: [0 - String.to_integer(val)], attributes: attributes}}
+  end
 
-  defp parse_iso8601(<<"-", year::binary-size(4)>>, attributes),
-    do: parse_iso8601("-" <> year <> "-01-01", attributes, :year)
+  defp parse_date(<<val::binary-size(2)>>, attributes) do
+    {:ok, %__MODULE__{type: :century, values: [String.to_integer(val)], attributes: attributes}}
+  end
 
-  defp parse_iso8601(<<year::binary-size(4)>>, attributes),
-    do: parse_iso8601(year <> "-01-01", attributes, :year)
+  defp parse_date(<<"-", val::binary-size(3)>>, attributes) do
+    {:ok,
+     %__MODULE__{type: :decade, values: [0 - String.to_integer(val)], attributes: attributes}}
+  end
 
-  defp parse_iso8601(<<"-", year::binary-size(4), "-", month::binary-size(2)>>, attributes),
-    do: parse_iso8601("-" <> year <> "-" <> month <> "-01", attributes, :month)
+  defp parse_date(<<val::binary-size(3)>>, attributes) do
+    {:ok, %__MODULE__{type: :decade, values: [String.to_integer(val)], attributes: attributes}}
+  end
 
-  defp parse_iso8601(<<year::binary-size(4), "-", month::binary-size(2)>>, attributes),
-    do: parse_iso8601(year <> "-" <> month <> "-01", attributes, :month)
+  defp parse_date(edtf, attributes) do
+    {edtf, masks} =
+      bitmask(edtf)
 
-  defp parse_iso8601(edtf, attributes, specificity \\ :day) do
-    {edtf, mask} = unspecified(edtf)
+    [_, sign, edtf] = Regex.run(~r/^(-?)(.+)$/, edtf)
 
-    case Elixir.Date.from_iso8601(edtf) do
+    {edtf, specificity} =
+      case String.length(edtf) do
+        4 -> {"#{edtf}-01-01", :year}
+        7 -> {"#{edtf}-01", :month}
+        _ -> {edtf, :day}
+      end
+
+    case Elixir.Date.from_iso8601(sign <> edtf) do
       {:ok, %Date{year: year, month: month, day: day}} ->
-        [year, month - 1, day] |> process_result(specificity, mask, attributes)
+        [year, month - 1, day] |> process_result(specificity, masks, attributes)
 
       {:error, _} ->
         :error
     end
   end
 
-  defp process_result(values, specificity, mask, attributes) do
+  defp process_result(values, specificity, masks, attributes) do
     values =
       case specificity do
         :day -> values
@@ -94,7 +98,7 @@ defmodule EDTF.Date do
         :year -> Enum.take(values, 1)
       end
 
-    attributes = if mask > 0, do: [{:unspecified, mask} | attributes], else: attributes
+    attributes = Keyword.merge(attributes, masks)
 
     {:ok,
      %__MODULE__{
@@ -103,57 +107,70 @@ defmodule EDTF.Date do
      }}
   end
 
-  defp unspecified(<<"-", edtf::binary>>) do
-    {edtf, mask} = unspecified(edtf)
-    {"-#{edtf}", mask}
-  end
-
-  defp unspecified(edtf) do
-    new_x = fn
-      {"X", 5} -> {"1", 2 ** 5}
-      {"X", 7} -> {"1", 2 ** 7}
-      {"X", p} -> {"0", 2 ** p}
-      {c, _} -> {c, 0}
-    end
-
-    {str, mask} =
+  defp bitmask(edtf) do
+    {str, _, attrs} =
       edtf
       |> String.graphemes()
-      |> Enum.reject(&(&1 == "-"))
-      |> Enum.with_index()
-      |> Enum.map(new_x)
-      |> Enum.reduce({"", 0}, fn {char, bits}, {str, mask} ->
-        {str <> char, mask + bits}
-      end)
+      |> Enum.reduce(
+        {"", 1, [unspecified: 0, approximate: 0, uncertain: 0]},
+        fn char, {str, bits, attrs} ->
+          case char do
+            "X" ->
+              {str <> "0", bits * 2, add_bits(attrs, :unspecified, bits)}
+
+            "~" ->
+              {str, bits, add_bits(attrs, :approximate, bits)}
+
+            "?" ->
+              {str, bits, add_bits(attrs, :uncertain, bits)}
+
+            "%" ->
+              {str, bits, add_bits(attrs, :approximate, bits) |> add_bits(:uncertain, bits)}
+
+            "-" ->
+              {str <> "-", bits, attrs}
+
+            d ->
+              {str <> d, bits * 2, attrs}
+          end
+        end
+      )
 
     {str
-     |> reassemble()
-     |> nonzero_month_and_day(), mask}
+     |> nonzero_month_and_day(), Keyword.reject(attrs, fn {_, v} -> v == 0 end)}
   end
 
-  defp level(edtf) do
-    cond do
-      Regex.match?(~r/^\d{2}X{2}$/, edtf) -> 1
-      Regex.match?(~r/^\d{3}X$/, edtf) -> 1
-      Regex.match?(~r/^\d{4}-XX$/, edtf) -> 1
-      Regex.match?(~r/^\d{4}-\d{2}-XX$/, edtf) -> 1
-      Regex.match?(~r/^\d{4}-XX-XX$/, edtf) -> 1
-      Regex.match?(~r/X/, edtf) -> 2
-      true -> 0
-    end
-  end
+  defp add_bits(attrs, attr, bits) do
+    bits =
+      cond do
+        # unspecified can exist in any place
+        attr == :unspecified -> bits
+        # approximate or uncertain year (XXXX-mm-dd)
+        bits < 15 -> 15
+        # approximate or uncertain month (yyyy-XX-dd)
+        bits < 48 -> 48
+        # approximate or uncertain day (yyyy-mm-XX)
+        bits < 192 -> 192
+      end
 
-  defp reassemble(<<year::binary-size(4), month::binary-size(2), day::binary-size(2)>>),
-    do: [year, month, day] |> Enum.join("-")
+    Keyword.update!(attrs, attr, fn v -> v + bits end)
+  end
 
   defp nonzero_month_and_day(str), do: String.replace(str, "-00", "-01")
 
   defp get_attributes(edtf) do
     case Regex.named_captures(~r/^(?<edtf>.+?)(?<attr>[~%?])?$/, edtf) do
-      %{"edtf" => result, "attr" => ""} -> {result, []}
-      %{"edtf" => result, "attr" => "~"} -> {result, [{:approximate, true}]}
-      %{"edtf" => result, "attr" => "%"} -> {result, [{:approximate, true}, {:uncertain, true}]}
-      %{"edtf" => result, "attr" => "?"} -> {result, [{:uncertain, true}]}
+      %{"edtf" => result, "attr" => ""} ->
+        {result, []}
+
+      %{"edtf" => result, "attr" => "~"} ->
+        {result, [{:approximate, true}]}
+
+      %{"edtf" => result, "attr" => "%"} ->
+        {result, [{:approximate, true}, {:uncertain, true}]}
+
+      %{"edtf" => result, "attr" => "?"} ->
+        {result, [{:uncertain, true}]}
     end
   end
 end
