@@ -3,45 +3,21 @@ defmodule EDTF.Interval do
   Parser for EDTF Intervals
   """
 
-  @matcher ~r"^([^/]+)?/([^/]+)?$"
-  @valid [EDTF.Date, EDTF.Infinity]
-
-  defstruct start: nil,
-            end: nil,
+  defstruct start: :unknown,
+            end: :unknown,
             level: 2
 
   @type t :: %__MODULE__{
-          start: EDTF.Date.t() | nil,
-          end: EDTF.Date.t() | nil,
+          start: EDTF.Date.t() | :unknown,
+          end: EDTF.Date.t() | :unknown,
           level: integer()
         }
 
-  def match?(edtf), do: Regex.match?(@matcher, edtf)
+  def assemble([{:interval, value}]), do: assemble({:interval, value})
 
-  def parse(edtf) do
-    case Regex.run(@matcher, edtf) do
-      [_ | values] ->
-        values
-        |> Enum.reduce_while([], &reducer/2)
-        |> case do
-          :error -> EDTF.error()
-          values -> {:ok, Enum.reverse(values) |> module()}
-        end
-
-      _ ->
-        EDTF.error()
-    end
+  def assemble({:interval, value}) do
+    start_date = {:date, Keyword.get(value, :start)} |> EDTF.Date.assemble()
+    end_date = {:date, Keyword.get(value, :end)} |> EDTF.Date.assemble()
+    %__MODULE__{start: start_date, end: end_date}
   end
-
-  defp reducer("", acc), do: {:cont, [nil | acc]}
-
-  defp reducer(date, acc) do
-    case EDTF.parse(date, @valid) do
-      {:ok, parsed} -> {:cont, [parsed | acc]}
-      {:error, _error} -> {:halt, :error}
-    end
-  end
-
-  defp module([start | [stop]]), do: %__MODULE__{start: start, end: stop, level: 2}
-  defp module([v]), do: module([v, nil])
 end

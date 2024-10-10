@@ -3,10 +3,6 @@ defmodule EDTF.Aggregate do
   Parser for EDTF Lists and Sets
   """
 
-  @matchers list: ~r/^\{(.+)\}$/, set: ~r/^\[(.+)\]$/
-
-  @valid [EDTF.Date, EDTF.Range]
-
   defstruct type: nil, values: [], level: 2, earlier: false, later: false
 
   @type t :: %__MODULE__{
@@ -17,38 +13,21 @@ defmodule EDTF.Aggregate do
           later: boolean()
         }
 
-  def match?(edtf), do: Enum.any?(@matchers, fn {_, re} -> Regex.match?(re, edtf) end)
+  def assemble({:list, value}), do: %__MODULE__{assemble(value) | type: :list}
+  def assemble({:set, value}), do: %__MODULE__{assemble(value) | type: :set}
 
-  def parse(edtf) do
-    case Enum.find(@matchers, fn {_, re} -> Regex.match?(re, edtf) end) do
-      nil ->
-        EDTF.error()
+  def assemble(value) do
+    dates =
+      Keyword.get(value, :dates, [])
+      |> Enum.map(fn
+        [{:interval, _}] = v -> EDTF.Interval.assemble(v)
+        v -> EDTF.Date.assemble({:date, v})
+      end)
 
-      {type, re} ->
-        [_, dates] = Regex.run(re, edtf)
-        {dates, attributes} = EDTF.open_ended(dates)
-
-        Regex.split(~r/\s*,\s*/, dates)
-        |> Enum.reduce_while([], &reducer/2)
-        |> finalize(type, attributes)
-    end
-  end
-
-  defp reducer(date, acc) do
-    case EDTF.parse(date, @valid) do
-      {:ok, parsed} -> {:cont, [parsed | acc]}
-      {:error, _error} -> {:halt, :error}
-    end
-  end
-
-  defp finalize(:error, _, _), do: EDTF.error()
-
-  defp finalize(values, type, attributes),
-    do: %__MODULE__{
-      type: type,
-      values: Enum.reverse(values),
-      earlier: attributes[:earlier],
-      later: attributes[:later],
-      level: 2
+    %__MODULE__{
+      values: dates,
+      earlier: Keyword.get(value, :earlier, false),
+      later: Keyword.get(value, :later, false)
     }
+  end
 end
