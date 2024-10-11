@@ -10,13 +10,10 @@ defmodule EDTF.Humanize do
 
   def humanize(nil), do: "Unknown"
 
-  def humanize([start_date | [end_date]]),
-    do: humanize(%EDTF.Interval{start: start_date, end: end_date})
-
   def humanize(%EDTF.Interval{start: start_date, end: end_date}) do
     case [start_date, end_date] do
-      [value | [%EDTF.Infinity{}]] -> "from #{humanize(value)}"
-      [%EDTF.Infinity{} | [value]] -> "before #{humanize(value)}"
+      [value, %EDTF.Infinity{}] -> "from #{humanize(value)}"
+      [%EDTF.Infinity{}, value] -> "before #{humanize(value)}"
       values -> values |> Enum.map_join(" to ", &humanize/1)
     end
   end

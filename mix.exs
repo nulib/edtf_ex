@@ -51,7 +51,8 @@ defmodule EDTF.MixProject do
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:ex_doc, "~> 0.34", only: [:dev, :test, :docs], runtime: false},
       {:excoveralls, "~> 0.18", only: [:dev, :test], runtime: false},
-      {:inflex, "~> 2.1"}
+      {:inflex, "~> 2.1"},
+      {:nimble_parsec, "~> 1.4"}
     ]
   end
 

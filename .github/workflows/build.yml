@@ -1,44 +1,17 @@
 ---
-name: edtf
+name: test
 on: [push]
 jobs:
   test:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        elixir:
-          - 1.15-25
-          - 1.15-26
-          - 1.16-25
-          - 1.16-26
-          - 1.17-25
-          - 1.17-26
-          - 1.17-27
     env:
       MIX_ENV: test
     steps:
-      - name: Set Elixir and OTP versions
-        id: elixir-otp
-        run: |
-          echo "elixir=$(sed 's/-.*$//' <<< $version)" >> $GITHUB_OUTPUT
-          echo "otp=$(sed 's/^.*-//' <<< $version)" >> $GITHUB_OUTPUT
-        env:
-          version: ${{ matrix.elixir }}
       - uses: actions/checkout@v2
       - uses: erlef/setup-beam@v1
         with:
-          otp-version: ${{ steps.elixir-otp.outputs.otp }}
-          elixir-version: ${{ steps.elixir-otp.outputs.elixir }}
-      - name: Cache Elixir dependencies
-        uses: actions/cache@v2
-        with:
-          path: |
-            deps
-            _build
-          key: ${{ runner.os }}-deps-${{ steps.elixir-otp.outputs.elixir }}-${{ steps.elixir-otp.outputs.otp }}-${{ hashFiles('mix.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-deps-${{ steps.elixir-otp.outputs.elixir }}-${{ steps.elixir-otp.outputs.otp }}-${{ hashFiles('mix.lock') }}
-            ${{ runner.os }}-deps-${{ steps.elixir-otp.outputs.elixir }}-${{ steps.elixir-otp.outputs.otp }}-
+          otp-version: 27
+          elixir-version: 1.17
       - name: Install Dependencies
         run: mix do deps.get, deps.compile
       - name: Static Analysis
@@ -46,45 +19,6 @@ jobs:
         env:
           MIX_ENV: test
       - name: Run Tests
-        run: mix test --trace
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  build:
-    runs-on: ubuntu-latest
-    needs: test
-    steps:
-      - name: Pass all checks
-        run: echo "Tests passed"
-  coverage:
-    runs-on: ubuntu-latest
-    env:
-      MIX_ENV: test
-    steps:
-      - name: Set Elixir and OTP versions
-        id: elixir-otp
-        run: |
-          echo "elixir=$(sed 's/-.*$//' <<< $version)" >> $GITHUB_OUTPUT
-          echo "otp=$(sed 's/^.*-//' <<< $version)" >> $GITHUB_OUTPUT
-        env:
-          version: "1.17-27"
-      - uses: actions/checkout@v2
-      - uses: erlef/setup-beam@v1
-        with:
-          otp-version: ${{ steps.elixir-otp.outputs.otp }}
-          elixir-version: ${{ steps.elixir-otp.outputs.elixir }}
-      - name: Cache Elixir dependencies
-        uses: actions/cache@v2
-        with:
-          path: |
-            deps
-            _build
-          key: ${{ runner.os }}-deps-${{ steps.elixir-otp.outputs.elixir }}-${{ steps.elixir-otp.outputs.otp }}-${{ hashFiles('mix.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-deps-${{ steps.elixir-otp.outputs.elixir }}-${{ steps.elixir-otp.outputs.otp }}-${{ hashFiles('mix.lock') }}
-            ${{ runner.os }}-deps-${{ steps.elixir-otp.outputs.elixir }}-${{ steps.elixir-otp.outputs.otp }}-
-      - name: Install Dependencies
-        run: mix do deps.get, deps.compile
-      - name: Run Tests & Coverage Analysis
         run: mix coveralls.github --trace
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -13,5 +13,6 @@ defmodule EDTFTest do
   test "parse/1" do
     assert EDTF.parse("2020") == {:ok, %EDTF.Date{level: 0, values: [2020]}}
     assert EDTF.parse("bad date!") == {:error, :invalid_format}
+    assert EDTF.parse("2020-%06-25?") == {:error, :invalid_format}
   end
 end

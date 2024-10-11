@@ -33,4 +33,3 @@ See `EDTF.parse/1`, `EDTF.validate/1`, and `EDTF.humanize/1`.
 
 - Some human-readable dates containing Level 2 qualifications and years with significant digits, 
   may produce less specific results than desired.
-- Level 2 years without the leading `Y` character (e.g., `2024S03`) are not supported at this time.

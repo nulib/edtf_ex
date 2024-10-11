@@ -17,13 +17,20 @@ defmodule EDTF do
     {:error, :invalid_format}
     ```
   """
-  def parse(edtf, include \\ [Interval, Aggregate, Date]) do
-    case Enum.find(include, & &1.match?(edtf)) do
-      nil -> error()
-      mod -> mod.parse(edtf)
+  def parse(edtf) do
+    case EDTF.Parser.parse(edtf) do
+      {:ok, [result], _, _, _, _} -> {:ok, assemble(result) |> Level.add_level()}
+      {:error, _, _, _, _, _} -> {:error, :invalid_format}
     end
-    |> Level.add_level()
   end
+
+  defp assemble({:date, _} = result), do: Date.assemble(result)
+  defp assemble({:year, _} = result), do: Date.assemble(result)
+  defp assemble({:decade, _} = result), do: Date.assemble(result)
+  defp assemble({:century, _} = result), do: Date.assemble(result)
+  defp assemble({:interval, _} = result), do: Interval.assemble(result)
+  defp assemble({:set, _} = result), do: Aggregate.assemble(result)
+  defp assemble({:list, _} = result), do: Aggregate.assemble(result)
 
   @doc """
   Validate an EDTF date string
@@ -60,30 +67,6 @@ defmodule EDTF do
     case edtf |> parse() |> EDTF.Humanize.humanize() do
       :original -> edtf
       other -> other
-    end
-  end
-
-  @doc """
-  Generate an error response
-  """
-  def error(error \\ :invalid_format), do: {:error, error}
-
-  @doc """
-  Identify the open-ended continuation markers on an EDTF date string
-  """
-  def open_ended(edtf) do
-    case Regex.named_captures(~r/^(?<earlier>\.\.)?(?<edtf>.+?)(?<later>\.\.)?$/, edtf) do
-      %{"earlier" => "..", "edtf" => result, "later" => ".."} ->
-        {result, [{:earlier, true}, {:later, true}]}
-
-      %{"earlier" => "..", "edtf" => result} ->
-        {result, [{:earlier, true}, {:later, false}]}
-
-      %{"edtf" => result, "later" => ".."} ->
-        {result, [{:earlier, false}, {:later, true}]}
-
-      %{"edtf" => result} ->
-        {result, [{:earlier, false}, {:later, false}]}
     end
   end
 end

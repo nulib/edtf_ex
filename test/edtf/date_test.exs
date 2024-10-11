@@ -123,6 +123,46 @@ defmodule EDTF.DateTest do
       refute subject.attributes[:uncertain]
       assert subject.attributes[:unspecified] == 165
     end
+
+    @tag edtf: "201?"
+    test "decade", %{subject: subject} do
+      assert subject.type == :decade
+      assert subject.values == [201]
+      assert subject.level == 1
+      refute subject.attributes[:approximate]
+      assert subject.attributes[:uncertain]
+      refute subject.attributes[:unspecified]
+    end
+
+    @tag edtf: "-201~"
+    test "negative decade", %{subject: subject} do
+      assert subject.type == :decade
+      assert subject.values == [-201]
+      assert subject.level == 1
+      assert subject.attributes[:approximate]
+      refute subject.attributes[:uncertain]
+      refute subject.attributes[:unspecified]
+    end
+
+    @tag edtf: "20%"
+    test "century", %{subject: subject} do
+      assert subject.type == :century
+      assert subject.values == [20]
+      assert subject.level == 1
+      assert subject.attributes[:approximate]
+      assert subject.attributes[:uncertain]
+      refute subject.attributes[:unspecified]
+    end
+
+    @tag edtf: "-20?"
+    test "negative century", %{subject: subject} do
+      assert subject.type == :century
+      assert subject.values == [-20]
+      assert subject.level == 1
+      refute subject.attributes[:approximate]
+      assert subject.attributes[:uncertain]
+      refute subject.attributes[:unspecified]
+    end
   end
 
   describe "significant digits" do
