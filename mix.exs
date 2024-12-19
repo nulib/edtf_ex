@@ -1,8 +1,8 @@
 defmodule EDTF.MixProject do
   use Mix.Project
 
-  @version "1.2.0"
-  @url "https://github.com/nulib/authoritex"
+  @version "1.2.1"
+  @url "https://github.com/nulib/edtf_ex"
 
   def project do
     [
