@@ -154,6 +154,7 @@ defmodule EDTF.Parser.Helpers do
     ```elixir
     iex> to_integer("", ~c"4321", %{}, nil, nil)
     {"", [1234], %{}}
+    ```
   """
   def to_integer(rest, value, context, _line, _offset) do
     {rest, [value |> Enum.reverse() |> to_string() |> String.to_integer()], context}
@@ -178,6 +179,7 @@ defmodule EDTF.Parser.Helpers do
     ...>   [value: 0, attributes: [approximate: 15, uncertain: 15]]
     ...> ], %{}, nil, nil)
     {"", [values: [0, 1, 10], attributes: [unspecified: 128, approximate: 63, uncertain: 15]], %{}}
+    ```
   """
   def reduce(rest, values, context, _line, _offset) do
     case reduce(Keyword.get(values, :qualifier), Enum.reject(values, &is_tuple/1)) do
