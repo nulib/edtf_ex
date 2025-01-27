@@ -18,21 +18,24 @@ defmodule EDTF.Parser do
 
   # Signed year with optional qualifier
   qualified_year =
-    optional(component_qualifier |> tag(:qualifier))
+    optional(component_qualifier |> tag(:pre_qualifier))
     |> concat(optional(sign) |> tag(:sign))
     |> concat(year |> tag(:value))
+    |> concat(optional(component_qualifier |> tag(:post_qualifier)))
     |> post_traverse({Helpers, :bitmask, [0]})
 
   # Month with optional qualifier
   qualified_month =
-    optional(component_qualifier |> tag(:qualifier))
+    optional(component_qualifier |> tag(:pre_qualifier))
     |> concat(month |> tag(:value))
+    |> concat(optional(component_qualifier |> tag(:post_qualifier)))
     |> post_traverse({Helpers, :bitmask, [4]})
 
   # Day with optional qualifier
   qualified_day =
-    optional(component_qualifier |> tag(:qualifier))
+    optional(component_qualifier |> tag(:pre_qualifier))
     |> concat(day |> tag(:value))
+    |> concat(optional(component_qualifier |> tag(:post_qualifier)))
     |> post_traverse({Helpers, :bitmask, [6]})
 
   # Basic [-]YYYY[-MM[-DD]] with optional qualifiers

@@ -96,6 +96,16 @@ defmodule EDTF.DateTest do
       assert subject.attributes[:uncertain] == 192
       refute subject.attributes[:unspecified]
     end
+
+    @tag edtf: "1978-02?-23"
+    test "approximate month and year", %{subject: subject} do
+      assert subject.type == :date
+      assert subject.values == [1978, 1, 23]
+      assert subject.level == 2
+      refute subject.attributes[:approximate]
+      assert subject.attributes[:uncertain] == 63
+      refute subject.attributes[:unspecified]
+    end
   end
 
   describe "unspecified" do
