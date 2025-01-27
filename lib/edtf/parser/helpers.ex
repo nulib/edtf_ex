@@ -24,28 +24,42 @@ defmodule EDTF.Parser.Helpers do
   being fully masked (15 for year, 48 for month, or 192 for day). Unspecified digits
   (`X`) flip individual bits.
 
+  A pre-component qualifier results in only that component being masked. A post-
+  component qualifier results in that component plus all components to the left
+  being masked.
+
   Example:
     ```elixir
     iex> bitmask("-%02", [value: ~c"200X", sign: ~c"-"], %{}, nil, nil, 0)
     {"-%02", [[value: -2000, attributes: [unspecified: 8]]], %{}}
 
-    iex> bitmask("", [value: ~c"02", qualifier: ~c"%"], %{}, nil, nil, 4)
+    iex> bitmask("", [value: ~c"02", pre_qualifier: ~c"%"], %{}, nil, nil, 4)
     {"", [[value: 2, attributes: [approximate: 48, uncertain: 48]]], %{}}
+
+    iex> bitmask("", [value: ~c"02", post_qualifier: ~c"%"], %{}, nil, nil, 4)
+    {"", [[value: 2, attributes: [approximate: 63, uncertain: 63]]], %{}}
     ```
   """
   def bitmask(rest, value, context, _line, _offset, shift) do
+    qualifier =
+      cond do
+        Keyword.get(value, :pre_qualifier) -> {:pre, Keyword.get(value, :pre_qualifier)}
+        Keyword.get(value, :post_qualifier) -> {:post, Keyword.get(value, :post_qualifier)}
+        true -> nil
+      end
+
     {rest,
      [
        bitmask(
          Keyword.get(value, :value),
          Keyword.get(value, :sign, ~c""),
-         Keyword.get(value, :qualifier, ~c""),
+         qualifier,
          shift
        )
      ], context}
   end
 
-  def bitmask(bitstring, sign, [], shift) do
+  def bitmask(bitstring, sign, nil, shift) do
     {output, mask} =
       bitstring
       |> Enum.with_index()
@@ -71,8 +85,8 @@ defmodule EDTF.Parser.Helpers do
     end
   end
 
-  def bitmask(bitstring, sign, qualifier, shift) do
-    mask = ((1 <<< length(bitstring)) - 1) <<< shift
+  def bitmask(bitstring, sign, {qualifier_position, qualifier}, shift) do
+    mask = calculate_mask(bitstring, shift, qualifier_position)
 
     attributes =
       Map.get(@qualifier_attributes, qualifier)
@@ -83,6 +97,9 @@ defmodule EDTF.Parser.Helpers do
       attributes: attributes
     ]
   end
+
+  defp calculate_mask(bitstring, shift, :pre), do: ((1 <<< length(bitstring)) - 1) <<< shift
+  defp calculate_mask(bitstring, shift, :post), do: (1 <<< (length(bitstring) + shift)) - 1
 
   @doc """
   Apply a parsed sign to a parsed integer value.
