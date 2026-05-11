@@ -133,19 +133,19 @@ defmodule EDTF.DateRangeTest do
     end
 
     test "open end (..)" do
-      assert EDTF.to_date_range("1985/..") == {:ok, {~D[1985-01-01], nil}}
+      assert EDTF.to_date_range("1985/..") == {:ok, {~D[1985-01-01], :unbounded}}
     end
 
     test "open start (..)" do
-      assert EDTF.to_date_range("../1985") == {:ok, {nil, ~D[1985-12-31]}}
+      assert EDTF.to_date_range("../1985") == {:ok, {:unbounded, ~D[1985-12-31]}}
     end
 
     test "unknown end" do
-      assert EDTF.to_date_range("1985/") == {:ok, {~D[1985-01-01], nil}}
+      assert EDTF.to_date_range("1985/") == {:ok, {~D[1985-01-01], :unknown}}
     end
 
     test "unknown start" do
-      assert EDTF.to_date_range("/1985") == {:ok, {nil, ~D[1985-12-31]}}
+      assert EDTF.to_date_range("/1985") == {:ok, {:unknown, ~D[1985-12-31]}}
     end
 
     test "reversed interval is normalized to chronological order" do
@@ -180,15 +180,15 @@ defmodule EDTF.DateRangeTest do
     end
 
     test "earlier continuation" do
-      assert EDTF.to_date_range("[..2020]") == {:ok, {nil, ~D[2020-12-31]}}
+      assert EDTF.to_date_range("[..2020]") == {:ok, {:unbounded, ~D[2020-12-31]}}
     end
 
     test "later continuation" do
-      assert EDTF.to_date_range("[2020..]") == {:ok, {~D[2020-01-01], nil}}
+      assert EDTF.to_date_range("[2020..]") == {:ok, {~D[2020-01-01], :unbounded}}
     end
 
     test "earlier and later continuations" do
-      assert EDTF.to_date_range("[..2018, 2020..]") == {:ok, {nil, nil}}
+      assert EDTF.to_date_range("[..2018, 2020..]") == {:ok, {:unbounded, :unbounded}}
     end
   end
 

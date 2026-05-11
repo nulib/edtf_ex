@@ -10,8 +10,10 @@ defmodule EDTF.DateRange do
   ## Semantics
 
   - Bounded inputs yield two concrete `Date.t()` values.
-  - Unbounded inputs (`/..`, `../`, `[..2020]`, `[2020..]`, unknown bounds)
-    yield `nil` on the unbounded side.
+  - Explicitly open inputs (`/..`, `../`, `[..2020]`, `[2020..]`) yield
+    `:unbounded` on the open side.
+  - Inputs with an unknown bound (`1985/`, `/1985`) yield `:unknown` on that
+    side.
   - Qualifiers (`~`, `?`, `%`) are ignored — the range uses the nominal date.
   - Unspecified digits (`X`) are expanded to their full place-value span when
     they form a contiguous suffix of a component (e.g. `19XX` → 1900-01-01 to
@@ -91,8 +93,8 @@ defmodule EDTF.DateRange do
         {:error, :unsupported}
 
       _ ->
-        start_date = if earlier, do: nil, else: earliest_start(ranges)
-        end_date = if later, do: nil, else: latest_end(ranges)
+        start_date = if earlier, do: :unbounded, else: earliest_start(ranges)
+        end_date = if later, do: :unbounded, else: latest_end(ranges)
         {:ok, {start_date, end_date}}
     end
   end
@@ -214,14 +216,16 @@ defmodule EDTF.DateRange do
     end
   end
 
-  defp resolve_boundary(:unknown), do: {:ok, nil}
-  defp resolve_boundary(nil), do: {:ok, nil}
-  defp resolve_boundary(%Infinity{}), do: {:ok, nil}
+  defp resolve_boundary(:unknown), do: {:ok, :unknown}
+  defp resolve_boundary(nil), do: {:ok, :unknown}
+  defp resolve_boundary(%Infinity{}), do: {:ok, :unbounded}
   defp resolve_boundary(%EDTF.Date{} = date), do: to_date_range(date)
 
-  defp interval_envelope(nil, nil), do: {nil, nil}
-  defp interval_envelope(nil, {_, b_end}), do: {nil, b_end}
-  defp interval_envelope({a_start, _}, nil), do: {a_start, nil}
+  defp interval_envelope(a, b) when a in [:unbounded, :unknown] and b in [:unbounded, :unknown],
+    do: {a, b}
+
+  defp interval_envelope(a, {_, b_end}) when a in [:unbounded, :unknown], do: {a, b_end}
+  defp interval_envelope({a_start, _}, b) when b in [:unbounded, :unknown], do: {a_start, b}
 
   defp interval_envelope({a_start, a_end}, {b_start, b_end}) do
     {Enum.min([a_start, b_start], Date), Enum.max([a_end, b_end], Date)}
@@ -236,20 +240,20 @@ defmodule EDTF.DateRange do
   defp earliest_start(ranges) do
     ranges
     |> Enum.map(fn {start_date, _} -> start_date end)
-    |> Enum.reject(&is_nil/1)
+    |> Enum.reject(&is_atom/1)
     |> min_date()
   end
 
   defp latest_end(ranges) do
     ranges
     |> Enum.map(fn {_, end_date} -> end_date end)
-    |> Enum.reject(&is_nil/1)
+    |> Enum.reject(&is_atom/1)
     |> max_date()
   end
 
-  defp min_date([]), do: nil
+  defp min_date([]), do: :unknown
   defp min_date(dates), do: Enum.min(dates, Date)
 
-  defp max_date([]), do: nil
+  defp max_date([]), do: :unknown
   defp max_date(dates), do: Enum.max(dates, Date)
 end

@@ -75,10 +75,11 @@ defmodule EDTF do
   `EDTF.Interval`, or `EDTF.Aggregate` struct) into a `{start_date, end_date}`
   tuple of `Date.t()` values.
 
-  Unbounded inputs (`/..`, `../`, unknown bounds, aggregate `..`-continuations)
-  produce `nil` on that side. Qualifiers (`~`, `?`, `%`) are ignored; the range
-  uses the nominal date. Unspecified-digit suffixes (e.g. `19XX`) expand to
-  their full span. See `EDTF.DateRange` for the full semantics.
+  Explicitly open inputs (`/..`, `../`, aggregate `..`-continuations) produce
+  `:unbounded` on that side. Inputs with an unknown bound (`1985/`, `/1985`)
+  produce `:unknown`. Qualifiers (`~`, `?`, `%`) are ignored; the range uses
+  the nominal date. Unspecified-digit suffixes (e.g. `19XX`) expand to their
+  full span. See `EDTF.DateRange` for the full semantics.
 
   Returns `{:error, :invalid_format}` when parsing fails, `{:error, :out_of_range}`
   when `Date.new/3` itself rejects a value, and `{:error, :unsupported}` for
@@ -91,7 +92,7 @@ defmodule EDTF do
     {:ok, {~D[1999-06-10], ~D[1999-06-10]}}
 
     iex> to_date_range("1985/..")
-    {:ok, {~D[1985-01-01], nil}}
+    {:ok, {~D[1985-01-01], :unbounded}}
 
     iex> to_date_range("19XX")
     {:ok, {~D[1900-01-01], ~D[1999-12-31]}}
