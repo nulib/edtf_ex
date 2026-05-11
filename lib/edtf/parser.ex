@@ -113,7 +113,7 @@ defmodule EDTF.Parser do
 
   edtf_year =
     choice([
-      optional(ignore(ascii_char([?Y]))) |> concat(qualified_year),
+      ignore(ascii_char([?Y])) |> concat(qualified_year),
       lookahead(choice([exponent, significant])) |> concat(qualified_year)
     ])
     |> tag(

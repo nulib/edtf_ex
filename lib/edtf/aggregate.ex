@@ -13,8 +13,15 @@ defmodule EDTF.Aggregate do
           later: boolean()
         }
 
-  def assemble({:list, value}), do: %__MODULE__{assemble(value) | type: :list}
-  def assemble({:set, value}), do: %__MODULE__{assemble(value) | type: :set}
+  def assemble({:list, value}) do
+    %__MODULE__{} = result = assemble(value)
+    %{result | type: :list}
+  end
+
+  def assemble({:set, value}) do
+    %__MODULE__{} = result = assemble(value)
+    %{result | type: :set}
+  end
 
   def assemble(value) do
     dates =
