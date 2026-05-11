@@ -16,6 +16,11 @@ defmodule EDTFTest do
     assert EDTF.parse("2020-%06-25?") == {:error, :invalid_format}
   end
 
+  test "to_date_range/1" do
+    assert EDTF.to_date_range("2020") == {:ok, {~D[2020-01-01], ~D[2020-12-31]}}
+    assert EDTF.to_date_range("bad date!") == {:error, :invalid_format}
+  end
+
   test "rejects unprefixed short-digit years (ISO 8601-2 requires Y prefix or 4-digit form)" do
     assert EDTF.parse("1") == {:error, :invalid_format}
     assert EDTF.humanize("1") == {:error, :invalid_format}
