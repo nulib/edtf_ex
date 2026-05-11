@@ -20,7 +20,14 @@ defmodule EDTF.MixProject do
         main: "readme",
         extras: ["README.md"]
       ],
-      preferred_cli_env: [
+      test_coverage: [tool: ExCoveralls],
+      elixirc_paths: elixirc_paths(Mix.env())
+    ]
+  end
+
+  def cli do
+    [
+      preferred_envs: [
         coveralls: :test,
         "coveralls.circle": :test,
         "coveralls.detail": :test,
@@ -32,9 +39,7 @@ defmodule EDTF.MixProject do
         "vcr.delete": :test,
         "vcr.check": :test,
         "vcr.show": :test
-      ],
-      test_coverage: [tool: ExCoveralls],
-      elixirc_paths: elixirc_paths(Mix.env())
+      ]
     ]
   end
 
