@@ -27,7 +27,7 @@ end
 
 ## Usage
 
-See `EDTF.parse/1`, `EDTF.validate/1`, and `EDTF.humanize/1`.
+See `EDTF.parse/1`, `EDTF.validate/1`, `EDTF.humanize/1`, and `EDTF.to_date_range/1`.
 
 ## Notes
 

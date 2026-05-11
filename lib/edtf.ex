@@ -69,4 +69,43 @@ defmodule EDTF do
       other -> other
     end
   end
+
+  @doc """
+  Convert an EDTF date string (or a previously parsed `EDTF.Date`,
+  `EDTF.Interval`, or `EDTF.Aggregate` struct) into a `{start_date, end_date}`
+  tuple of `Date.t()` values.
+
+  Unbounded inputs (`/..`, `../`, unknown bounds, aggregate `..`-continuations)
+  produce `nil` on that side. Qualifiers (`~`, `?`, `%`) are ignored; the range
+  uses the nominal date. Unspecified-digit suffixes (e.g. `19XX`) expand to
+  their full span. See `EDTF.DateRange` for the full semantics.
+
+  Returns `{:error, :invalid_format}` when parsing fails, `{:error, :out_of_range}`
+  when `Date.new/3` itself rejects a value, and `{:error, :unsupported}` for
+  shapes the converter declines (e.g. fully-unknown year `XXXX` or non-suffix
+  unspecified digits like `X9X2`).
+
+  Example:
+    ```elixir
+    iex> to_date_range("1999-06-10")
+    {:ok, {~D[1999-06-10], ~D[1999-06-10]}}
+
+    iex> to_date_range("1985/..")
+    {:ok, {~D[1985-01-01], nil}}
+
+    iex> to_date_range("19XX")
+    {:ok, {~D[1900-01-01], ~D[1999-12-31]}}
+
+    iex> to_date_range("[1667, 1668, 1670..1672]")
+    {:ok, {~D[1667-01-01], ~D[1672-12-31]}}
+
+    iex> to_date_range("bad date!")
+    {:error, :invalid_format}
+    ```
+  """
+  def to_date_range(edtf) when is_binary(edtf) do
+    edtf |> parse() |> EDTF.DateRange.to_date_range()
+  end
+
+  def to_date_range(edtf), do: EDTF.DateRange.to_date_range(edtf)
 end
