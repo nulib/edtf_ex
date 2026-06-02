@@ -3,7 +3,7 @@ defmodule EDTF do
   Parse, validate, and humanize EDTF date strings
   """
 
-  alias EDTF.{Aggregate, Date, Interval, Level}
+  alias EDTF.{Aggregate, Date, Interval, Level, Validate}
 
   @doc """
   Parse an EDTF date string
@@ -15,12 +15,19 @@ defmodule EDTF do
 
     iex> parse("bad date!")
     {:error, :invalid_format}
+
+    iex> parse("1999-02-30")
+    {:error, :invalid_date}
     ```
   """
   def parse(edtf) do
     case EDTF.Parser.parse(edtf) do
-      {:ok, [result], _, _, _, _} -> {:ok, assemble(result) |> Level.add_level()}
-      {:error, _, _, _, _, _} -> {:error, :invalid_format}
+      {:ok, [result], _, _, _, _} ->
+        assembled = assemble(result) |> Level.add_level()
+        if Validate.valid?(assembled), do: {:ok, assembled}, else: {:error, :invalid_date}
+
+      {:error, _, _, _, _, _} ->
+        {:error, :invalid_format}
     end
   end
 
@@ -42,6 +49,9 @@ defmodule EDTF do
 
     iex> validate("bad date!")
     {:error, :invalid_format}
+
+    iex> validate("1999-02-30")
+    {:error, :invalid_date}
     ```
   """
   def validate(edtf) do
@@ -81,10 +91,11 @@ defmodule EDTF do
   the nominal date. Unspecified-digit suffixes (e.g. `19XX`) expand to their
   full span. See `EDTF.DateRange` for the full semantics.
 
-  Returns `{:error, :invalid_format}` when parsing fails, `{:error, :out_of_range}`
-  when `Date.new/3` itself rejects a value, and `{:error, :unsupported}` for
-  shapes the converter declines (e.g. fully-unknown year `XXXX` or non-suffix
-  unspecified digits like `X9X2`).
+  Returns `{:error, :invalid_format}` when the string is malformed,
+  `{:error, :invalid_date}` when it is well-formed but not a real calendar date
+  (e.g. `1999-02-30`), `{:error, :out_of_range}` when `Date.new/3` itself rejects
+  a value, and `{:error, :unsupported}` for shapes the converter declines (e.g.
+  fully-unknown year `XXXX` or non-suffix unspecified digits like `X9X2`).
 
   Example:
     ```elixir
