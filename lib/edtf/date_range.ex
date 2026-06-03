@@ -15,9 +15,12 @@ defmodule EDTF.DateRange do
   - Inputs with an unknown bound (`1985/`, `/1985`) yield `:unknown` on that
     side.
   - Qualifiers (`~`, `?`, `%`) are ignored — the range uses the nominal date.
-  - Unspecified digits (`X`) are expanded to their full place-value span when
-    they form a contiguous suffix of a component (e.g. `19XX` → 1900-01-01 to
-    1999-12-31). Non-suffix unspecified digits return `{:error, :unsupported}`.
+  - Unspecified digits (`X`) forming a contiguous suffix of a component expand to
+    that suffix's span: `19XX` → 1900–1999, `2020-1X` → Oct–Dec 2020,
+    `2020-12-3X` → Dec 30–31 2020. A fully-unknown month or day widens to the
+    whole year or month respectively. Non-suffix unknown digits (`X9X2`,
+    `2020-X2`), a fully-unknown year (`XXXX`), and suffixes that can't denote a
+    real date (`2020-02-3X`) return `{:error, :unsupported}`.
   - Seasons map to month ranges (quarters, quadrimesters, semesters are
     unambiguous; codes 21–24 are treated as northern-hemisphere; Winter and
     southern-hemisphere Summer span the year boundary).
@@ -52,6 +55,15 @@ defmodule EDTF.DateRange do
   }
 
   @year_span_for_mask %{0 => 0, 8 => 9, 12 => 99, 14 => 999}
+
+  # Unspecified-mask bit groups (see EDTF.Parser.Helpers.bitmask/6). The `_units`
+  # masks are the trailing digit of a component — the only sub-year suffix that
+  # expands to a clean span; a leading-digit (non-suffix) mask falls through.
+  @year_bits 15
+  @month_bits 48
+  @month_units 32
+  @day_bits 192
+  @day_units 128
 
   @doc """
   Convert a parsed EDTF struct (or a `parse/1` result tuple) into a
@@ -130,33 +142,81 @@ defmodule EDTF.DateRange do
   defp from_date(_), do: {:error, :unsupported}
 
   defp from_unspecified(%EDTF.Date{values: values, type: :date}, mask) do
-    year_bits = mask &&& 15
-    month_bits = mask &&& 48
-    day_bits = mask &&& 192
+    year_bits = mask &&& @year_bits
+    month_bits = mask &&& @month_bits
+    day_bits = mask &&& @day_bits
 
     cond do
-      year_bits == 15 ->
-        {:error, :unsupported}
-
-      year_bits != 0 and not Map.has_key?(@year_span_for_mask, year_bits) ->
-        {:error, :unsupported}
-
-      year_bits != 0 ->
-        span_range(hd(values), Map.fetch!(@year_span_for_mask, year_bits))
-
-      month_bits != 0 ->
-        year_range(hd(values))
-
-      day_bits != 0 and match?([_, _ | _], values) ->
-        [year, month | _] = values
-        month_range(year, month + 1)
-
-      true ->
-        {:error, :unsupported}
+      year_bits != 0 -> unspecified_year_range(values, year_bits)
+      month_bits != 0 -> unspecified_month_range(values, month_bits)
+      day_bits != 0 and match?([_, _ | _], values) -> unspecified_day_range(values, day_bits)
+      true -> {:error, :unsupported}
     end
   end
 
   defp from_unspecified(_, _), do: {:error, :unsupported}
+
+  # Only a contiguous suffix expands cleanly: a fully-unknown or non-suffix year
+  # isn't in the table, so it declines.
+  defp unspecified_year_range([year | _], year_bits) do
+    case Map.get(@year_span_for_mask, year_bits) do
+      nil -> {:error, :unsupported}
+      span -> span_range(year, span)
+    end
+  end
+
+  defp unspecified_month_range([year | _], @month_bits), do: month_span(year, 1, 12)
+
+  defp unspecified_month_range([year, month | _], @month_units) do
+    tens = div(month + 1, 10)
+    month_span(year, tens * 10, tens * 10 + 9)
+  end
+
+  defp unspecified_month_range(_, _), do: {:error, :unsupported}
+
+  defp unspecified_day_range([year, month | _], @day_bits), do: month_range(year, month + 1)
+
+  defp unspecified_day_range([year, month, day], @day_units) do
+    tens = div(day, 10)
+    day_span(year, month + 1, tens * 10, tens * 10 + 9)
+  end
+
+  defp unspecified_day_range(_, _), do: {:error, :unsupported}
+
+  defp month_span(year, low, high) do
+    start_month = max(low, 1)
+    end_month = min(high, 12)
+
+    if start_month > end_month do
+      {:error, :unsupported}
+    else
+      with {:ok, start_date} <- Date.new(year, start_month, 1),
+           {:ok, end_pivot} <- Date.new(year, end_month, 1) do
+        end_date = Date.new!(year, end_month, Date.days_in_month(end_pivot))
+        {:ok, {start_date, end_date}}
+      else
+        _ -> {:error, :out_of_range}
+      end
+    end
+  end
+
+  # An empty span (e.g. `02-3X`: no day 30-39 exists in February) has no range.
+  defp day_span(year, month, low, high) do
+    case Date.new(year, month, 1) do
+      {:ok, first} ->
+        start_day = max(low, 1)
+        end_day = min(high, Date.days_in_month(first))
+
+        if start_day > end_day do
+          {:error, :unsupported}
+        else
+          {:ok, {Date.new!(year, month, start_day), Date.new!(year, month, end_day)}}
+        end
+
+      _ ->
+        {:error, :out_of_range}
+    end
+  end
 
   defp year_range(year), do: span_range(year, 0)
 

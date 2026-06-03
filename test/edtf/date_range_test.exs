@@ -61,6 +61,30 @@ defmodule EDTF.DateRangeTest do
     test "day-component unspecified widens to the full month" do
       assert EDTF.to_date_range("1999-12-XX") == {:ok, {~D[1999-12-01], ~D[1999-12-31]}}
     end
+
+    test "partial month suffix narrows to that block of months" do
+      assert EDTF.to_date_range("2020-1X") == {:ok, {~D[2020-10-01], ~D[2020-12-31]}}
+      assert EDTF.to_date_range("2020-0X") == {:ok, {~D[2020-01-01], ~D[2020-09-30]}}
+    end
+
+    test "partial day suffix narrows to that block of days" do
+      assert EDTF.to_date_range("2020-12-3X") == {:ok, {~D[2020-12-30], ~D[2020-12-31]}}
+      assert EDTF.to_date_range("2020-12-0X") == {:ok, {~D[2020-12-01], ~D[2020-12-09]}}
+    end
+
+    test "partial day suffix is clamped to the real length of the month" do
+      assert EDTF.to_date_range("2020-04-3X") == {:ok, {~D[2020-04-30], ~D[2020-04-30]}}
+    end
+
+    test "a suffix that can't denote a real date is unsupported" do
+      # No day 30-39 exists in February.
+      assert EDTF.to_date_range("2020-02-3X") == {:error, :unsupported}
+    end
+
+    test "non-suffix month or day digits are unsupported" do
+      assert EDTF.to_date_range("2020-X2") == {:error, :unsupported}
+      assert EDTF.to_date_range("2020-12-X5") == {:error, :unsupported}
+    end
   end
 
   describe "to_date_range/1 — seasons" do

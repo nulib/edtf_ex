@@ -3,10 +3,19 @@ defmodule EDTF do
   Parse, validate, and humanize EDTF date strings
   """
 
-  alias EDTF.{Aggregate, Date, Interval, Level}
+  alias EDTF.{Aggregate, Date, Interval, Level, Validate}
 
   @doc """
   Parse an EDTF date string
+
+  Well-formed strings that don't denote a real calendar date (e.g.
+  `"1999-02-30"`) return `{:error, :invalid_date}`. Pass `validate: false` to
+  skip calendar validation and accept the assembled struct anyway — useful when
+  cataloging an item whose stamped date is known to be impossible.
+
+  ## Options
+
+    * `:validate` — when `false`, skip calendar validation. Defaults to `true`.
 
   Example:
     ```elixir
@@ -15,12 +24,29 @@ defmodule EDTF do
 
     iex> parse("bad date!")
     {:error, :invalid_format}
+
+    iex> parse("1999-02-30")
+    {:error, :invalid_date}
+
+    iex> parse("1999-02-30", validate: false)
+    {:ok, %EDTF.Date{level: 0, type: :date, values: [1999, 1, 30]}}
     ```
   """
-  def parse(edtf) do
+  def parse(edtf, opts \\ []) do
+    validate? = Keyword.get(opts, :validate, true)
+
     case EDTF.Parser.parse(edtf) do
-      {:ok, [result], _, _, _, _} -> {:ok, assemble(result) |> Level.add_level()}
-      {:error, _, _, _, _, _} -> {:error, :invalid_format}
+      {:ok, [result], _, _, _, _} ->
+        assembled = assemble(result) |> Level.add_level()
+
+        cond do
+          not validate? -> {:ok, assembled}
+          Validate.valid?(assembled) -> {:ok, assembled}
+          true -> {:error, :invalid_date}
+        end
+
+      {:error, _, _, _, _, _} ->
+        {:error, :invalid_format}
     end
   end
 
@@ -42,6 +68,9 @@ defmodule EDTF do
 
     iex> validate("bad date!")
     {:error, :invalid_format}
+
+    iex> validate("1999-02-30")
+    {:error, :invalid_date}
     ```
   """
   def validate(edtf) do
@@ -54,6 +83,14 @@ defmodule EDTF do
   @doc """
   Humanize an EDTF date string
 
+  Accepts the same options as `parse/2`. Passing `validate: false` lets you
+  render a well-formed but calendar-invalid date (e.g. an impossible stamped
+  date) instead of returning `{:error, :invalid_date}`.
+
+  ## Options
+
+    * `:validate` — when `false`, skip calendar validation. Defaults to `true`.
+
   Example:
     ```elixir
     iex> humanize("1999-06-10")
@@ -61,10 +98,16 @@ defmodule EDTF do
 
     iex> humanize("bad date!")
     {:error, :invalid_format}
+
+    iex> humanize("1999-02-30")
+    {:error, :invalid_date}
+
+    iex> humanize("1999-02-30", validate: false)
+    "February 30, 1999"
     ```
   """
-  def humanize(edtf) do
-    case edtf |> parse() |> EDTF.Humanize.humanize() do
+  def humanize(edtf, opts \\ []) do
+    case edtf |> parse(opts) |> EDTF.Humanize.humanize() do
       :original -> edtf
       other -> other
     end
@@ -81,10 +124,11 @@ defmodule EDTF do
   the nominal date. Unspecified-digit suffixes (e.g. `19XX`) expand to their
   full span. See `EDTF.DateRange` for the full semantics.
 
-  Returns `{:error, :invalid_format}` when parsing fails, `{:error, :out_of_range}`
-  when `Date.new/3` itself rejects a value, and `{:error, :unsupported}` for
-  shapes the converter declines (e.g. fully-unknown year `XXXX` or non-suffix
-  unspecified digits like `X9X2`).
+  Returns `{:error, :invalid_format}` when the string is malformed,
+  `{:error, :invalid_date}` when it is well-formed but not a real calendar date
+  (e.g. `1999-02-30`), `{:error, :out_of_range}` when `Date.new/3` itself rejects
+  a value, and `{:error, :unsupported}` for shapes the converter declines (e.g.
+  fully-unknown year `XXXX` or non-suffix unspecified digits like `X9X2`).
 
   Example:
     ```elixir
