@@ -1,7 +1,7 @@
 defmodule EDTF.MixProject do
   use Mix.Project
 
-  @version "2.0.0"
+  @version "2.0.1"
   @url "https://github.com/nulib/edtf_ex"
 
   def project do
